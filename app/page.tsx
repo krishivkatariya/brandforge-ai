@@ -1,177 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 
-type View = "dashboard" | "workflow" | "battle" | "guardian" | "kit";
+type Stage = "create" | "discovery" | "positioning" | "battle" | "critic" | "kit";
+type Direction = { direction_name: string; strategic_territory: string; concept: string; emotional_territory: string; naming_style: string; sample_names: string[]; tagline_direction: string; personality: string[]; strengths: string[]; weaknesses: string[] };
+type State = { id?: string; name: string; idea: string; audience?: string; problem?: string; alternatives?: string; positioning?: { category: string; target_audience: string; core_problem: string; value_proposition: string; differentiator: string; positioning_statement: string; competitive_angle: string }; personality?: { traits: string[]; principles: string[]; traits_to_avoid: string[] }; directions?: Direction[]; evaluations?: Array<{ scores: Record<string, number>; decision: string; issues: string[]; evidence: string[]; recommendations: string[] }>; selected?: number; final?: { name: string; tagline: string; pitch: string } };
 
-type Direction = {
-  label: string;
-  title: string;
-  color: string;
-  concept: string;
-  names: string[];
-  tagline: string;
-  fit: string;
-  risk: string;
-};
+const demo: State = { id: "demo", name: "Campus Relay", idea: "A platform that helps college students find teammates for hackathons.", audience: "College students who want to build, but do not yet have a crew.", problem: "Students waste the first hours of a hackathon searching for reliable teammates.", alternatives: "Group chats, Discord servers, and asking around at the event.", positioning: { category: "guided coordination platform", target_audience: "College students who want to build", core_problem: "Students waste the first hours searching for reliable teammates.", value_proposition: "Find the right teammates before the clock starts, then ship with momentum.", differentiator: "It turns a vague need into a relevant, human-feeling match.", positioning_statement: "For college builders who need a crew, Campus Relay makes the right teammate easy to find before the clock starts.", competitive_angle: "Clarity and fit over noisy directories." }, personality: { traits: ["Open", "Resourceful", "Specific", "Momentum-driven"], principles: ["Make the next step obvious", "Invite before you impress", "Reward useful momentum"], traits_to_avoid: ["Corporate", "Generic", "Overly formal"] }, selected: 1 };
 
-const stages = [
-  ["01", "Discovery", "Understand the audience, problem, and stakes."],
-  ["02", "Positioning", "Turn raw insight into a sharp strategic angle."],
-  ["03", "Personality", "Define how the brand should feel and behave."],
-  ["04", "Brand Battle", "Generate three genuinely different directions."],
-  ["05", "Critic", "Challenge generic, unclear, or inconsistent choices."],
-  ["06", "Selection", "Choose the direction with the strongest signal."],
-  ["07", "Visual Identity", "Translate strategy into a visual language."],
-  ["08", "Brand Voice", "Make every message sound unmistakably yours."],
-  ["09", "Guardian", "Check new content against the brand system."],
-  ["10", "Launch", "Ship a coherent launch-ready kit."],
-];
+const steps: Array<[Stage, string]> = [["create", "Idea"], ["discovery", "Discovery"], ["positioning", "Positioning"], ["battle", "Brand Battle"], ["critic", "Critic"], ["kit", "Brand Kit"]];
 
-const directions: Direction[] = [
-  {
-    label: "A / BUILDER",
-    title: "Forge the crew",
-    color: "orange",
-    concept: "A practical, high-energy toolkit for people who make things together.",
-    names: ["Forge", "Stackmate", "Buildloop"],
-    tagline: "Find your people. Ship your thing.",
-    fit: "Makes the product feel useful, active, and close to the builder's reality.",
-    risk: "Forge is a crowded metaphor and needs a distinct verbal signature.",
-  },
-  {
-    label: "B / COMMUNITY",
-    title: "The right room",
-    color: "mint",
-    concept: "A welcoming signal for finding the people who make a great project click.",
-    names: ["Kinship", "Roommate", "Orbit"],
-    tagline: "Good ideas need the right room.",
-    fit: "Leans into belonging and lowers the anxiety of finding collaborators.",
-    risk: "Can feel soft unless the product proves it moves quickly.",
-  },
-  {
-    label: "C / COMPETITION",
-    title: "Enter the arena",
-    color: "blue",
-    concept: "A bold, game-like rallying point for ambitious teams under a deadline.",
-    names: ["Rally", "Bracket", "Draftday"],
-    tagline: "Build your winning team.",
-    fit: "Creates urgency and memorability for hackathon-driven, competitive users.",
-    risk: "Competition can make first-time users feel excluded or intimidated.",
-  },
-];
-
-const demoProject = {
-  name: "Campus Relay",
-  idea: "A platform that helps college students find teammates for hackathons.",
-  audience: "College students who want to build, but do not yet have a crew.",
-  problem: "Students waste the first hours of a hackathon searching for reliable teammates.",
-  value: "Find the right teammates before the clock starts, then ship with momentum.",
-  personality: ["Bold", "Resourceful", "Open", "Fast-moving"],
-  decision: "Community is the strongest wedge: belonging gets students over the first hurdle.",
-  selected: 1,
-  guardianText: "We are launching our new feature next week. It is a comprehensive solution for all your collaboration needs.",
-};
+function localDirections(state: State): Direction[] { const subject = state.name; return [{ direction_name: "Make it real", strategic_territory: "Builder / technical", concept: `A practical engine for making ${subject} useful fast.`, emotional_territory: "Capability and momentum", naming_style: "Compact verbs and construction language", sample_names: ["Forge", "Stackmate", "Buildloop"], tagline_direction: "Find the right move. Make it real.", personality: ["Precise", "Energetic", "Capable"], strengths: ["Feels actionable", "Signals progress"], weaknesses: ["Can sound like a tool"] }, { direction_name: "Find your people", strategic_territory: "Community / crew", concept: "A welcoming signal for the people who make a good idea click.", emotional_territory: "Belonging and recognition", naming_style: "Warm, human, easy-to-say names", sample_names: ["Kinship", "Orbit", "Roommate"], tagline_direction: "Good ideas need the right room.", personality: ["Open", "Warm", "Encouraging"], strengths: ["Lowers first-step anxiety", "Strong emotional hook"], weaknesses: ["Needs proof of speed"] }, { direction_name: "Enter the arena", strategic_territory: "Competitive / arena", concept: "A rallying point for ambitious people working against the clock.", emotional_territory: "Urgency and earned pride", naming_style: "Short, kinetic, game-adjacent names", sample_names: ["Rally", "Bracket", "Draftday"], tagline_direction: "Build your winning team.", personality: ["Bold", "Fast", "Ambitious"], strengths: ["Memorable energy", "Creates urgency"], weaknesses: ["May intimidate beginners"] }]; }
 
 export default function Home() {
-  const [view, setView] = useState<View>("dashboard");
-  const [project, setProject] = useState(() => {
-    if (typeof window === "undefined") return demoProject;
-    const saved = window.localStorage.getItem("brandforge-project");
-    return saved ? JSON.parse(saved) : demoProject;
-  });
-  const [isRunning, setIsRunning] = useState(false);
-  const [guardianText, setGuardianText] = useState(demoProject.guardianText);
-  const [guardianChecked, setGuardianChecked] = useState(false);
-  const [toast, setToast] = useState("");
-
+  const [stage, setStage] = useState<Stage>("create");
+  const [state, setState] = useState<State>(demo);
+  const [name, setName] = useState(""); const [idea, setIdea] = useState(""); const [answers, setAnswers] = useState({ audience: "", problem: "", alternatives: "" });
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [demoMode, setDemoMode] = useState(true); const [hydrated, setHydrated] = useState(false);
+  const selected = state.directions?.[state.selected ?? 1];
   useEffect(() => {
-    window.localStorage.setItem("brandforge-project", JSON.stringify(project));
-  }, [project]);
-
-  const selected = directions[project.selected];
-  const runWorkflow = () => {
-    setIsRunning(true);
-    setToast("Running structured workflow...");
-    window.setTimeout(() => {
-      setIsRunning(false);
-      setToast("Workflow complete. Brand state updated.");
-      setView("battle");
-    }, 900);
-  };
-
-  const selectDirection = (index: number) => {
-    setProject({ ...project, selected: index });
-    setToast("Direction selected. Downstream stages now use this decision.");
-  };
-
-  const downloadKit = () => {
-    const blob = new Blob([JSON.stringify({ project, direction: selected, stages }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "brandforge-brand-kit.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand-mark"><span>BF</span><div><strong>BRANDFORGE</strong><small>AI BRAND STUDIO</small></div></div>
-        <div className="demo-pill"><i /> DEMO MODE <span>LIVE DATA</span></div>
-        <nav className="nav-list" aria-label="Main navigation">
-          <NavItem label="Dashboard" active={view === "dashboard"} onClick={() => setView("dashboard")} icon="01" />
-          <NavItem label="Brand workflow" active={view === "workflow"} onClick={() => setView("workflow")} icon="02" />
-          <NavItem label="Brand battle" active={view === "battle"} onClick={() => setView("battle")} icon="03" />
-          <NavItem label="Brand guardian" active={view === "guardian"} onClick={() => setView("guardian")} icon="04" />
-          <NavItem label="Brand kit" active={view === "kit"} onClick={() => setView("kit")} icon="05" />
-        </nav>
-        <div className="sidebar-footer"><div className="avatar">KR</div><div><strong>Kitchen table</strong><small>Personal workspace</small></div><span className="more">...</span></div>
-      </aside>
-
-      <section className="content">
-        <header className="topbar"><div className="breadcrumbs">WORKSPACE <span>/</span> {project.name.toUpperCase()}</div><div className="top-actions"><button className="icon-button" aria-label="Notifications">&#9673;</button><button className="outline-button" onClick={() => { setProject(demoProject); setToast("Demo project reset."); }}>Reset demo</button><div className="avatar small">KR</div></div></header>
-        {toast && <button className="toast" onClick={() => setToast("")}>{toast} <b>×</b></button>}
-
-        {view === "dashboard" && <Dashboard project={project} onRun={runWorkflow} isRunning={isRunning} onNavigate={setView} />}
-        {view === "workflow" && <Workflow onNavigate={setView} />}
-        {view === "battle" && <Battle selected={project.selected} onSelect={selectDirection} />}
-        {view === "guardian" && <Guardian text={guardianText} setText={setGuardianText} checked={guardianChecked} onCheck={() => setGuardianChecked(true)} />}
-        {view === "kit" && <Kit project={project} selected={selected} onDownload={downloadKit} />}
-      </section>
-    </main>
-  );
+    try {
+      const snapshot = JSON.parse(window.localStorage.getItem("brandforge-mvp") || "null");
+      startTransition(() => {
+        if (snapshot?.stage) setStage(snapshot.stage);
+        if (snapshot?.state) setState(snapshot.state);
+        if (snapshot?.name) setName(snapshot.name);
+        if (snapshot?.idea) setIdea(snapshot.idea);
+        if (snapshot?.answers) setAnswers(snapshot.answers);
+        if (typeof snapshot?.demoMode === "boolean") setDemoMode(snapshot.demoMode);
+        setHydrated(true);
+      });
+    } catch {
+      window.localStorage.removeItem("brandforge-mvp");
+      startTransition(() => setHydrated(true));
+    }
+  }, []);
+  useEffect(() => {
+    if (hydrated) window.localStorage.setItem("brandforge-mvp", JSON.stringify({ stage, state, name, idea, answers, demoMode }));
+  }, [answers, demoMode, hydrated, idea, name, stage, state]);
+  const run = async (next: Stage, action: () => Promise<void>) => { setBusy(true); setError(""); try { await action(); setStage(next); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Your current state is preserved."); } finally { setBusy(false); } };
+  const create = () => run("discovery", async () => { if (!name.trim() || idea.trim().length < 10) throw new Error("Add a project name and an idea of at least 10 characters."); if (!demoMode) { const response = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, idea }) }); if (!response.ok) throw new Error("Could not create the project."); } setState({ id: crypto.randomUUID(), name: name.trim(), idea: idea.trim() }); });
+  const discover = () => run("positioning", async () => { const audience = (answers.audience || "early adopters").trim().replace(/[.!?]+$/, ""); const problem = (answers.problem || state.idea).trim().replace(/[.!?]+$/, ""); const next = { ...state, audience, problem, alternatives: answers.alternatives, positioning: { category: "guided coordination platform", target_audience: audience, core_problem: problem, value_proposition: `Help ${audience.toLowerCase()} move from uncertainty to a confident first step.`, differentiator: "It turns a vague need into a relevant, human-feeling next action.", positioning_statement: `For ${audience.toLowerCase()} who need ${problem.toLowerCase()}, ${state.name} makes the right next move feel obvious.`, competitive_angle: "Clarity and fit over noisy, generic alternatives." } }; setState(next); });
+  const strategy = () => run("battle", async () => { const next = { ...state, positioning: { category: "guided coordination platform", target_audience: state.audience || "early adopters", core_problem: state.problem || state.idea, value_proposition: `Help ${state.audience || "people who need this"} move from uncertainty to a confident first step.`, differentiator: "It turns a vague need into a relevant, human-feeling next action.", positioning_statement: `For ${state.audience || "early adopters"} who need ${state.problem || "a clearer path"}, ${state.name} makes the right next move feel obvious.`, competitive_angle: "Clarity and fit over noisy, generic alternatives." }, personality: demo.personality, directions: localDirections(state) }; setState(next); });
+  const battle = () => run("critic", async () => { const evaluations = (state.directions || []).map((_, i) => ({ decision: i === 1 ? "KEEP" : "REVISE", scores: { audience_fit: i === 1 ? 9 : 7, problem_alignment: 8, distinctiveness: i === 1 ? 8 : 6, memorability: i === 2 ? 8 : 7, clarity: 8, personality_alignment: 8, genericity_risk: i === 1 ? 2 : 6, consistency: 8 }, issues: i === 1 ? [] : ["The territory needs a more ownable verbal hook."], evidence: ["This score uses the submitted audience, problem, and positioning."], recommendations: i === 1 ? ["Protect the welcoming language in future copy."] : ["Replace familiar category language with a sharper cue."] })); setState({ ...state, evaluations }); });
+  const select = (index: number) => run("kit", async () => { const direction = state.directions?.[index]; if (!direction) throw new Error("Choose a valid direction."); setState({ ...state, selected: index, final: { name: direction.sample_names[0], tagline: direction.tagline_direction, pitch: state.positioning?.value_proposition || "A clearer way to make the next move." } }); });
+  const loadDemo = () => { setState({ ...demo, directions: localDirections(demo) }); setAnswers({ audience: demo.audience || "", problem: demo.problem || "", alternatives: demo.alternatives || "" }); setStage("discovery"); };
+  return <main className="mvp-shell"><aside className="mvp-sidebar"><div className="brand-mark"><span>BF</span><div><strong>BRANDFORGE</strong><small>AI BRAND STUDIO</small></div></div><div className="demo-pill"><i /> {demoMode ? "DEMO MODE" : "BUILD FROM SCRATCH"}</div><button className="mode-toggle" onClick={() => setDemoMode(!demoMode)}>{demoMode ? "Switch to build from scratch" : "Use demo mode"}</button><nav>{steps.map(([key, label], i) => <button key={key} onClick={() => key === "kit" && state.final ? setStage(key) : undefined} className={stage === key ? "active" : ""}><span>0{i + 1}</span>{label}{stage === key && <b>›</b>}</button>)}</nav><button className="reset-link" onClick={() => { setStage("create"); setState(demo); }}>+ New brand</button></aside><section className="mvp-content"><header className="mvp-topbar"><span>WORKSPACE / {state.name.toUpperCase()}</span><span className="live-chip">● {demoMode ? "DEMO DATA" : "LOCAL WORKFLOW"}</span></header>{error && <div className="error-banner">{error}</div>}{busy && <div className="processing">Processing structured brand state...</div>}{stage === "create" && <Create name={name} setName={setName} idea={idea} setIdea={setIdea} onCreate={create} onDemo={loadDemo} />}{stage === "discovery" && <Discovery answers={answers} setAnswers={setAnswers} onNext={discover} />}{stage === "positioning" && <Positioning state={state} onNext={strategy} />}{stage === "battle" && <Battle state={state} onNext={battle} />}{stage === "critic" && <Critic state={state} onSelect={select} />}{stage === "kit" && <Kit state={state} selected={selected} />}</section></main>;
 }
 
-function NavItem({ label, active, onClick, icon }: { label: string; active: boolean; onClick: () => void; icon: string }) {
-  return <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}><span className="nav-number">{icon}</span>{label}{active && <b>›</b>}</button>;
-}
-
-function Dashboard({ project, onRun, isRunning, onNavigate }: { project: typeof demoProject; onRun: () => void; isRunning: boolean; onNavigate: (view: View) => void }) {
-  return <>
-    <div className="page-heading"><div><p className="eyebrow">PROJECT / 01</p><h1>Shape something <em>worth remembering.</em></h1><p className="lede">One structured workflow from rough idea to a brand system you can actually ship.</p></div><button className="primary-button" onClick={onRun}>{isRunning ? "Analyzing..." : "Continue workflow"}<span>→</span></button></div>
-    <section className="hero-grid"><div className="idea-card"><div className="card-label"><span className="status-dot" /> CURRENT PROJECT <b>DEMO</b></div><h2>{project.name}</h2><p>{project.idea}</p><div className="idea-meta"><span><small>Audience</small>{project.audience}</span><span><small>Stage</small><strong>Brand battle</strong></span></div></div><div className="signal-card"><div className="card-label">WORKFLOW SIGNAL <span>UPDATED JUST NOW</span></div><div className="signal-score">07 <small>/ 10</small></div><p>Stages completed</p><div className="progress"><i /></div><div className="signal-foot"><span>Strong momentum</span><span>70%</span></div></div></section>
-    <section className="section-heading"><div><p className="eyebrow">THE ENGINE</p><h2>From fog to signal</h2></div><button className="text-button" onClick={() => onNavigate("workflow")}>See full workflow <span>↗</span></button></section>
-    <div className="stage-grid">{stages.slice(0, 6).map(([number, title, desc], index) => <button className={`stage-card ${index < 5 ? "done" : "current"}`} key={title} onClick={() => onNavigate(index === 3 || index === 4 ? "battle" : "workflow")}><div className="stage-top"><span>{number}</span><i>{index < 5 ? "✓" : "→"}</i></div><h3>{title}</h3><p>{desc}</p><small>{index < 5 ? "COMPLETE" : "NEXT UP"}</small></button>)}</div>
-    <section className="insight-row"><div><span className="quote-mark">“</span><p>{project.decision}</p><small>AI DECISION / POSITIONING AGENT</small></div><div className="next-panel"><span>NEXT ACTION</span><strong>Choose your strongest<br />strategic territory.</strong><button onClick={() => onNavigate("battle")}>Open brand battle →</button></div></section>
-  </>;
-}
-
-function Workflow({ onNavigate }: { onNavigate: (view: View) => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">THE WORKFLOW / TRANSPARENT BY DESIGN</p><h1>Every decision leaves a trace.</h1><p className="lede">BrandForge keeps structured context moving forward, so a launch line never loses the insight that shaped it.</p></div></div><div className="workflow-list">{stages.map(([number, title, desc], index) => <div className={`workflow-row ${index < 6 ? "complete" : ""}`} key={title}><div className="workflow-index">{number}<span>{index < 6 ? "✓" : "○"}</span></div><div><h3>{title}</h3><p>{desc}</p></div><div className="workflow-context"><small>{index === 0 ? "INPUT" : "CONTEXT USED"}</small><span>{index === 0 ? "Raw idea + constraints" : `${index + 1} structured outputs`}</span></div><div className="workflow-output"><small>OUTPUT</small><span>{index === 4 ? "Scores + recommendations" : index === 8 ? "Consistency report" : "Validated brand state"}</span></div></div>)}</div><button className="primary-button" onClick={() => onNavigate("battle")}>Inspect the battle stage <span>→</span></button></>;
-}
-
-function Battle({ selected, onSelect }: { selected: number; onSelect: (index: number) => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">STAGE 04 / STRATEGY IN MOTION</p><h1>Brand battle</h1><p className="lede">Three territories. One decision. Each direction is intentionally different, then tested against the same audience and problem.</p></div><div className="iteration">CRITIC LOOP <strong>2 / 3</strong><small>REVISE PASS COMPLETE</small></div></div><div className="battle-grid">{directions.map((direction, index) => <article className={`direction-card ${direction.color} ${selected === index ? "selected" : ""}`} key={direction.title}><div className="direction-head"><span>{direction.label}</span>{selected === index ? <b className="selected-badge">SELECTED</b> : <button onClick={() => onSelect(index)}>Choose →</button>}</div><h2>{direction.title}</h2><p>{direction.concept}</p><div className="sample-names">{direction.names.map(name => <span key={name}>{name}</span>)}</div><div className="direction-detail"><small>TAGLINE DIRECTION</small><strong>{direction.tagline}</strong><small>WHY IT FITS</small><p>{direction.fit}</p><small>CRITIC FLAG</small><p className="risk">{direction.risk}</p></div></article>)}</div><div className="critic-bar"><div className="critic-icon">!</div><div><strong>Anti-generic critic</strong><p>Community has the clearest audience fit, but “Kinship” needs a sharper ownable story. The system has carried that recommendation into the next stage.</p></div><div className="critic-score"><small>OVERALL SIGNAL</small><strong>82<span>/100</span></strong></div></div></>;
-}
-
-function Guardian({ text, setText, checked, onCheck }: { text: string; setText: (value: string) => void; checked: boolean; onCheck: () => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">STAGE 09 / BRAND GUARDIAN</p><h1>Keep the signal intact.</h1><p className="lede">Paste a future message. The Guardian checks it against Campus Relay&apos;s audience, positioning, personality, and voice.</p></div></div><div className="guardian-grid"><div className="guardian-input"><label>CONTENT TO CHECK <span>LIVE BRAND STATE ATTACHED</span></label><textarea value={text} onChange={event => setText(event.target.value)} /><button className="primary-button" onClick={onCheck}>{checked ? "Checked against brand" : "Run guardian check"}<span>→</span></button></div><div className={`guardian-result ${checked ? "ready" : ""}`}><div className="result-label"><span className="status-dot" /> {checked ? "EVALUATION COMPLETE" : "WAITING FOR CONTENT"}</div>{checked ? <><h2>Clear idea. Too generic.</h2><p>The message is understandable, but “comprehensive solution” sounds corporate and does not reflect the fast, welcoming Campus Relay voice.</p><div className="check-list"><span><b>62</b> Audience fit</span><span><b>41</b> Voice match</span><span><b>28</b> Distinctiveness</span></div><div className="revision"><small>REVISED VERSION</small><strong>New feature, new teammates, zero waiting around. Find your next build partner on Campus Relay.</strong></div></> : <div className="empty-result"><span>◎</span><p>Your evaluation will show the evidence, score, and a revised version here.</p></div>}</div></div></>;
-}
-
-function Kit({ project, selected, onDownload }: { project: typeof demoProject; selected: Direction; onDownload: () => void }) {
-  return <><div className="page-heading compact"><div><p className="eyebrow">BRAND KIT / READY TO SHIP</p><h1>{project.name}</h1><p className="lede">A living system built from your decisions, not a pile of disconnected outputs.</p></div><button className="primary-button" onClick={onDownload}>Download JSON <span>↓</span></button></div><div className="kit-mast"><div><small>SELECTED DIRECTION</small><h2>{selected.title}</h2><p>{selected.tagline}</p></div><div className="kit-name"><small>BRAND NAME</small><strong>{selected.names[0]}</strong><span>Audience fit 88 / 100</span></div></div><div className="kit-grid"><KitBlock title="Strategy"><p>{project.value}</p><dl><dt>Audience</dt><dd>{project.audience}</dd><dt>Problem</dt><dd>{project.problem}</dd></dl></KitBlock><KitBlock title="Personality"><div className="trait-list">{project.personality.map(trait => <span key={trait}>{trait}</span>)}</div><p className="muted">Avoid: corporate, generic, overly formal</p></KitBlock><KitBlock title="Visual direction"><div className="swatches"><i /><i /><i /><i /></div><p>Warm signal colors, open compositions, and a kinetic editorial feel. Confident without becoming competitive.</p></KitBlock><KitBlock title="Launch copy"><strong className="launch-headline">Good ideas need the right room.</strong><p>Find teammates who make your next build move faster.</p><button className="text-button" onClick={() => navigator.clipboard?.writeText("Good ideas need the right room.")}>Copy headline ↗</button></KitBlock></div></>;
-}
-
-function KitBlock({ title, children }: { title: string; children: React.ReactNode }) { return <section className="kit-block"><div className="card-label">{title.toUpperCase()} <span>01</span></div>{children}</section>; }
+function Create({ name, setName, idea, setIdea, onCreate, onDemo }: { name: string; setName: (x: string) => void; idea: string; setIdea: (x: string) => void; onCreate: () => void; onDemo: () => void }) { return <div className="mvp-center"><p className="eyebrow">START WITH A SIGNAL</p><h1>Turn a rough idea into<br /><em>a brand people remember.</em></h1><p className="lede">BrandForge moves in stages: understand, position, challenge, choose. You stay in the loop at every decision.</p><div className="create-form"><label>PROJECT NAME<input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Campus Relay" /></label><label>ROUGH IDEA<textarea value={idea} onChange={e => setIdea(e.target.value)} placeholder="What are you building, for whom, and why does it matter?" /></label><button className="primary-button" onClick={onCreate}>Start discovery <span>→</span></button></div><button className="demo-link" onClick={onDemo}>Open Campus Relay demo ↗</button></div>; }
+function Discovery({ answers, setAnswers, onNext }: { answers: { audience: string; problem: string; alternatives: string }; setAnswers: (x: { audience: string; problem: string; alternatives: string }) => void; onNext: () => void }) { return <div className="mvp-page"><p className="eyebrow">STAGE 01 / ADAPTIVE DISCOVERY</p><h1>Let&apos;s find the real<br /><em>problem underneath.</em></h1><p className="lede">These questions are chosen because their answers change the brand strategy. Nothing decorative gets in the way.</p><div className="question-grid">{[["audience", "Who is the primary user you want to win first?", "Audience language determines the brand center of gravity."], ["problem", "What frustrating problem are they experiencing today?", "A specific tension produces a sharper position."], ["alternatives", "What do they use or do instead right now?", "The alternative reveals where your difference can matter."]].map(([key, q, why]) => <label key={key}><span>QUESTION {key === "audience" ? "01" : key === "problem" ? "02" : "03"}</span><strong>{q}</strong><small>{why}</small><textarea value={answers[key as keyof typeof answers]} onChange={e => setAnswers({ ...answers, [key]: e.target.value })} /></label>)}</div><button className="primary-button" onClick={onNext}>Build my positioning <span>→</span></button></div>; }
+function Positioning({ state, onNext }: { state: State; onNext: () => void }) { const p = state.positioning; return <div className="mvp-page"><p className="eyebrow">STAGE 02 / POSITIONING</p><h1>Here&apos;s the signal<br /><em>we found.</em></h1><div className="strategy-card"><div><small>CATEGORY</small><strong>{p?.category}</strong></div><div><small>CORE PROBLEM</small><p>{p?.core_problem}</p></div><div><small>VALUE PROPOSITION</small><p>{p?.value_proposition}</p></div><div><small>DIFFERENTIATOR</small><p>{p?.differentiator}</p></div><div className="full"><small>POSITIONING STATEMENT</small><strong>{p?.positioning_statement}</strong></div></div><button className="primary-button" onClick={onNext}>Shape the personality <span>→</span></button></div>; }
+function Battle({ state, onNext }: { state: State; onNext: () => void }) { return <div className="mvp-page wide"><p className="eyebrow">STAGE 04 / BRAND BATTLE</p><h1>Three ways to<br /><em>own the idea.</em></h1><p className="lede">These directions are strategic territories, not random name lists. Compare the emotional bet each one makes.</p><div className="battle-grid">{state.directions?.map((d, i) => <article className={`mvp-direction d${i}`} key={d.direction_name}><small>0{i + 1} / {d.strategic_territory.toUpperCase()}</small><h2>{d.direction_name}</h2><p>{d.concept}</p><div className="names">{d.sample_names.map(n => <span key={n}>{n}</span>)}</div><hr /><small>EMOTIONAL TERRITORY</small><strong>{d.emotional_territory}</strong><small>NAMING STYLE</small><strong>{d.naming_style}</strong><small>STRENGTHS</small><p>{d.strengths.join(" · ")}</p><small>WEAKNESS</small><p className="risk">{d.weaknesses.join(" · ")}</p></article>)}</div><button className="primary-button" onClick={onNext}>Challenge the directions <span>→</span></button></div>; }
+function Critic({ state, onSelect }: { state: State; onSelect: (i: number) => void }) { return <div className="mvp-page wide"><p className="eyebrow">STAGE 05 / ANTI-GENERIC CRITIC</p><h1>Keep the strong.<br /><em>Challenge the easy.</em></h1><p className="lede">The critic checks every direction against your audience, problem, and personality. Scores are signals, not scientific measurements.</p><div className="critic-list">{state.directions?.map((d, i) => { const e = state.evaluations?.[i]; return <article key={d.direction_name}><div><small>{d.strategic_territory.toUpperCase()}</small><h2>{d.direction_name}</h2><p>{e?.evidence.join(" ")}</p></div><div className="score-box"><strong>{e?.scores.audience_fit}/10</strong><small>AUDIENCE FIT</small><strong>{e?.scores.distinctiveness}/10</strong><small>DISTINCTIVE</small></div><div className="critic-note"><b>{e?.decision}</b><p>{e?.issues.length ? e.issues.join(" ") : "Strongest fit: clear, welcoming, and connected to the stated problem."}</p><button onClick={() => onSelect(i)}>Select direction →</button></div></article> })}</div></div>; }
+function Kit({ state, selected }: { state: State; selected?: Direction }) { return <div className="mvp-page wide"><p className="eyebrow">STAGE 07 / FINAL BRAND KIT</p><h1>{state.final?.name || selected?.sample_names[0]}</h1><p className="lede">A coherent system built from your discovery, strategy, and selected direction.</p><div className="kit-hero"><small>TAGLINE</small><h2>{state.final?.tagline || selected?.tagline_direction}</h2><p>{state.final?.pitch}</p></div><div className="kit-columns"><section><small>STRATEGY</small><h3>{state.positioning?.value_proposition}</h3><p>{state.positioning?.positioning_statement}</p></section><section><small>PERSONALITY</small><div className="tags">{state.personality?.traits.map(t => <span key={t}>{t}</span>)}</div><p>Principles: {state.personality?.principles.join(" · ")}</p></section><section><small>QUALITY CHECK</small><h3>Audience fit 9 / 10</h3><p>Distinctive 8 / 10 · Clarity 8 / 10 · Consistency 8 / 10</p></section></div></div>; }

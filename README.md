@@ -6,16 +6,13 @@ BrandForge is a structured AI brand strategy studio for turning a rough product 
 
 ## What is implemented
 
-- Demo Mode with a complete Campus Relay project and realistic structured outputs.
-- Dashboard with persistent project state and workflow progress.
-- Transparent workflow view showing inputs, context passed forward, and outputs.
-- Brand Battle with three different territories: Builder, Community, and Competition.
-- Anti-generic critic evidence and critique-loop status.
-- Brand Guardian with a content check, scores, explanation, and revised copy.
-- Brand Kit with strategy, personality, visual direction, launch copy, and JSON export.
-- Next.js API routes for project creation/listing and Guardian checks.
-- FastAPI API shell for a live server-side provider integration.
-- Environment-variable configuration with no secrets in frontend code.
+- End-to-end MVP: rough idea -> adaptive discovery -> positioning -> personality -> Brand Battle -> critic -> selection -> final Brand Kit.
+- Demo Mode with a complete Campus Relay example and structured outputs.
+- Build From Scratch mode for any user-submitted project name and idea.
+- Validated Pydantic `BrandState` carried across the FastAPI workflow.
+- Provider-neutral LLM service using `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` with a deterministic fallback.
+- FastAPI routes for projects, discovery, positioning, personality, battle, critic, and direction selection.
+- Responsive premium workflow UI with loading and error states.
 
 ## Stack
 
@@ -52,29 +49,46 @@ Copy `.env.example` to `.env.local` for the frontend and to `backend/.env` for t
 - `LLM_MODEL`: model identifier, defaulting to `gpt-oss-120b`.
 - `NEXT_PUBLIC_DEMO_MODE`: keep `true` for a reliable presentation without an external provider.
 
+## MVP API
+
+```text
+POST /api/projects
+POST /api/projects/{id}/discovery
+POST /api/projects/{id}/positioning
+POST /api/projects/{id}/personality
+POST /api/projects/{id}/battle
+POST /api/projects/{id}/critic
+POST /api/projects/{id}/select-direction
+GET  /api/projects/{id}
+```
+
 ## Architecture direction
 
 The intended live orchestration pipeline is:
 
 `Discovery -> Positioning -> Personality -> Brand Battle -> Critic -> Selection -> Visual -> Voice -> Guardian -> Launch`
 
-Each stage should receive only the relevant structured `BrandState` fields, validate its JSON output with Pydantic, and write the next state without destroying the prior state. The demo UI already models this context flow and is safe to run without an API key.
+Each stage receives only the relevant structured `BrandState` fields, validates its JSON output with Pydantic, and writes the next state without destroying the prior state. Demo Mode runs the same UI flow with local deterministic data so it remains reliable without an API key.
 
 ## Project structure
 
 ```text
-app/page.tsx              Main product UI and demo workflow state
+app/page.tsx              End-to-end MVP UI and demo workflow state
 app/globals.css           BrandForge visual system and responsive layout
 app/api/projects          Local project API contract
 app/api/guardian          Local Guardian API contract
-backend/app/main.py       Optional FastAPI server shell
-backend/requirements.txt  Optional backend dependencies
+backend/app/main.py       FastAPI MVP entrypoint
+backend/app/api            MVP route modules
+backend/app/agents         Structured fallback/LLM agent functions
+backend/app/schemas        Validated BrandState and output models
+backend/app/services       LLM and orchestration services
+backend/requirements.txt   Backend dependencies
 .env.example              Provider configuration template
 ```
 
 ## Hackathon note
 
-Demo Mode is intentionally labeled in the product. Its outputs are pre-generated presentation data, not claimed live model calls. Set `NEXT_PUBLIC_DEMO_MODE=false` and configure the backend/provider boundary before presenting live generation.
+Demo Mode is intentionally labeled in the product. Its outputs are deterministic development data, not claimed live model calls. Set `NEXT_PUBLIC_DEMO_MODE=false`, start FastAPI, and configure the provider before presenting live generation.
 
 ## Getting Started
 
@@ -95,18 +109,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
