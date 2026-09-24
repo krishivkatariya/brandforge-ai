@@ -41,6 +41,52 @@ class NamingState(BaseModel):
     candidates: List[str] = Field(default_factory=list)
 
 
+class VisualIdentityState(BaseModel):
+    color_palette: List[str] = Field(default_factory=list)
+    typography: List[str] = Field(default_factory=list)
+    imagery_style: str = ""
+    composition: str = ""
+    symbols: List[str] = Field(default_factory=list)
+    ui_direction: str = ""
+    things_to_avoid: List[str] = Field(default_factory=list)
+
+
+class BrandVoiceState(BaseModel):
+    tone: str = ""
+    vocabulary: List[str] = Field(default_factory=list)
+    sentence_style: str = ""
+    writing_rules: List[str] = Field(default_factory=list)
+    words_to_use: List[str] = Field(default_factory=list)
+    words_to_avoid: List[str] = Field(default_factory=list)
+    example_headline: str = ""
+    example_product_description: str = ""
+    example_social_post: str = ""
+    example_cta: str = ""
+
+
+class GuardianState(BaseModel):
+    content: str = ""
+    overall_evaluation: str = ""
+    audience_fit: int = Field(default=0, ge=0, le=10)
+    positioning_alignment: int = Field(default=0, ge=0, le=10)
+    personality_alignment: int = Field(default=0, ge=0, le=10)
+    voice_alignment: int = Field(default=0, ge=0, le=10)
+    genericity_risk: int = Field(default=0, ge=0, le=10)
+    problems: List[str] = Field(default_factory=list)
+    explanation: str = ""
+    recommendations: List[str] = Field(default_factory=list)
+    improved_version: str = ""
+
+
+class LaunchContentState(BaseModel):
+    headline: str = ""
+    subheadline: str = ""
+    one_line_pitch: str = ""
+    product_description: str = ""
+    social_post: str = ""
+    cta: str = ""
+
+
 class BrandDirection(BaseModel):
     direction_name: str
     strategic_territory: str
@@ -98,5 +144,9 @@ class BrandState(BaseModel):
     brand_directions: List[BrandDirection] = Field(default_factory=list)
     selected_direction: Optional[BrandDirection] = None
     evaluation: EvaluationState = Field(default_factory=EvaluationState)
+    visual_identity: VisualIdentityState = Field(default_factory=VisualIdentityState)
+    brand_voice: BrandVoiceState = Field(default_factory=BrandVoiceState)
+    guardian: Optional[GuardianState] = None
+    launch: LaunchContentState = Field(default_factory=LaunchContentState)
     final_brand: Optional[FinalBrand] = None
     current_stage: str = "discovery"

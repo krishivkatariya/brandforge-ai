@@ -12,6 +12,7 @@ BrandForge is a structured AI brand strategy studio for turning a rough product 
 - Validated Pydantic `BrandState` carried across the FastAPI workflow.
 - Provider-neutral LLM service using `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` with a deterministic fallback.
 - FastAPI routes for projects, discovery, positioning, personality, battle, critic, and direction selection.
+- Visual Identity, Brand Voice, Brand Guardian, Launch Content, Workflow, and Brand Kit stages.
 - Responsive premium workflow UI with loading and error states.
 
 ## Stack
@@ -30,11 +31,11 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-The current machine's Python 3.6 installation is below FastAPI's supported runtime range. Use Python 3.10+ for the optional backend:
+Use Python 3.10+ for the backend. The verified local environment uses Python 3.12:
 
 ```powershell
 cd backend
-py -3.11 -m venv .venv
+py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
@@ -59,6 +60,11 @@ POST /api/projects/{id}/personality
 POST /api/projects/{id}/battle
 POST /api/projects/{id}/critic
 POST /api/projects/{id}/select-direction
+POST /api/projects/{id}/visual
+POST /api/projects/{id}/voice
+POST /api/projects/{id}/guardian
+POST /api/projects/{id}/launch
+GET  /api/projects/{id}/brand-kit
 GET  /api/projects/{id}
 ```
 
@@ -66,7 +72,7 @@ GET  /api/projects/{id}
 
 The intended live orchestration pipeline is:
 
-`Discovery -> Positioning -> Personality -> Brand Battle -> Critic -> Selection -> Visual -> Voice -> Guardian -> Launch`
+`Discovery -> Positioning -> Personality -> Brand Battle -> Critic -> Selection -> Visual -> Voice -> Guardian -> Launch -> Brand Kit`
 
 Each stage receives only the relevant structured `BrandState` fields, validates its JSON output with Pydantic, and writes the next state without destroying the prior state. Demo Mode runs the same UI flow with local deterministic data so it remains reliable without an API key.
 
@@ -78,7 +84,7 @@ app/globals.css           BrandForge visual system and responsive layout
 app/api/projects          Local project API contract
 app/api/guardian          Local Guardian API contract
 backend/app/main.py       FastAPI MVP entrypoint
-backend/app/api            MVP route modules
+backend/app/api            MVP and brand-system route modules
 backend/app/agents         Structured fallback/LLM agent functions
 backend/app/schemas        Validated BrandState and output models
 backend/app/services       LLM and orchestration services

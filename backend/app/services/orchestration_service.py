@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from app.agents import critic_agent, naming_agent, personality_agent, positioning_agent, discovery_agent
+from app.agents import critic_agent, naming_agent, personality_agent, positioning_agent, discovery_agent, brand_system_agent
 from app.schemas.brand_state import BrandState, DiscoveryState, FinalBrand, NamingState
 
 
@@ -64,4 +64,42 @@ class OrchestrationService:
         state.selected_direction = selected
         state.current_stage = "brand_kit"
         state.final_brand = FinalBrand(name=selected.sample_names[0], tagline=selected.tagline_direction, pitch=state.positioning.value_proposition, strategy=state.positioning, personality=state.personality, voice={"tone": "direct, warm, useful", "rules": ["Use active verbs", "Invite before you impress"]}, visual_direction={"colors": ["ink", "signal orange", "soft mint"], "typography": "expressive grotesk with compact mono labels", "imagery": "real people in motion", "things_to_avoid": ["stock corporate scenes", "generic gradients"]})
+        return state
+
+    def visual(self, project_id: str) -> BrandState:
+        state = self.get(project_id)
+        if not state.selected_direction:
+            raise HTTPException(status_code=400, detail="Select a brand direction first")
+        state.visual_identity = brand_system_agent.visual(state)
+        state.current_stage = "voice"
+        return state
+
+    def voice(self, project_id: str) -> BrandState:
+        state = self.get(project_id)
+        if not state.selected_direction:
+            raise HTTPException(status_code=400, detail="Select a brand direction first")
+        state.brand_voice = brand_system_agent.voice(state)
+        state.current_stage = "guardian"
+        return state
+
+    def guardian(self, project_id: str, content: str) -> BrandState:
+        state = self.get(project_id)
+        if not state.selected_direction:
+            raise HTTPException(status_code=400, detail="Select a brand direction first")
+        state.guardian = brand_system_agent.guardian(state, content)
+        state.current_stage = "launch"
+        return state
+
+    def launch(self, project_id: str) -> BrandState:
+        state = self.get(project_id)
+        if not state.selected_direction:
+            raise HTTPException(status_code=400, detail="Select a brand direction first")
+        state.launch = brand_system_agent.launch(state)
+        state.current_stage = "brand_kit"
+        return state
+
+    def brand_kit(self, project_id: str) -> BrandState:
+        state = self.get(project_id)
+        if not state.selected_direction:
+            raise HTTPException(status_code=400, detail="Select a brand direction first")
         return state
