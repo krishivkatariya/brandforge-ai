@@ -1,5 +1,11 @@
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
+load_dotenv()
 
 from app.api import battle, brand_system, critic, discovery, projects, strategy
 

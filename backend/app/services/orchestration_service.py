@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 from app.agents import critic_agent, naming_agent, personality_agent, positioning_agent, discovery_agent, brand_system_agent
-from app.schemas.brand_state import BrandState, DiscoveryState, FinalBrand, NamingState
+from app.schemas.brand_state import BrandState, DiscoveryState, EvaluationState, FinalBrand, NamingState
 
 
 class OrchestrationService:
@@ -52,7 +52,7 @@ class OrchestrationService:
     def critic(self, project_id: str) -> object:
         state = self.get(project_id)
         result = critic_agent.run(state, min(state.evaluation.iteration + 1, 3))
-        state.evaluation = {"iteration": result.iteration, "evaluations": result.evaluations}
+        state.evaluation = EvaluationState(iteration=result.iteration, evaluations=result.evaluations)
         state.current_stage = "selection"
         return result
 
