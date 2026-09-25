@@ -11,10 +11,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import battle, brand_system, critic, discovery, projects, strategy
 
+default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+env_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+allowed_origins = list(dict.fromkeys(default_origins + env_origins))
+
 app = FastAPI(title="BrandForge AI API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
