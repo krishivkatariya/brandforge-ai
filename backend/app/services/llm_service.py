@@ -33,6 +33,7 @@ class LLMService:
 
     def complete_json(self, system: str, context: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
         if not self.live:
+            print(f"[LLMService] demo fallback used for '{system}': provider not configured (missing LLM_API_KEY/LLM_BASE_URL)")
             return fallback
         try:
             import httpx
@@ -55,6 +56,8 @@ class LLMService:
                 raise ValueError("LLM response was not an object")
             merged = dict(fallback)
             merged.update(parsed)
+            print(f"[LLMService] live Groq response used for '{system}' with model '{self.model}'")
             return merged
-        except Exception:
+        except Exception as exc:
+            print(f"[LLMService] live call failed for '{system}' ({type(exc).__name__}): {exc}. Using demo fallback.")
             return fallback
